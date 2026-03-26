@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIA - Secrétaire IA | JB EYES</title>
+    <style>
+        :root{--bg:#080c14;--bg2:#0f1629;--bg3:#1a2744;--gold:#f59e0b;--purple:#8b5cf6;--blue:#3b82f6;--green:#10b981;--red:#ef4444;--text:#f8fafc;--muted:#64748b}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        
+        .app{display:flex;flex-direction:column;height:100vh}
+        
+        header{background:linear-gradient(135deg,var(--bg2),var(--bg));padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center}
+        .brand{display:flex;align-items:center;gap:10px}
+        .brand-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--gold),#d97706);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 15px rgba(245,158,11,.25)}
+        .brand h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--text),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .brand p{font-size:10px;color:var(--muted)}
+        
+        .mic-badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;transition:all .3s}
+        .mic-badge.listening{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5}
+        .mic-badge.speaking{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.4);color:#c4b5fd}
+        .mic-badge.ready{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7}
+        .mic-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+        .mic-badge.listening .mic-dot{animation:pulse .8s infinite}
+        
+        .chat{flex:1;overflow-y:auto;padding:16px;padding-bottom:160px}
+        .chat-inner{max-width:720px;margin:0 auto}
+        
+        .msg{display:flex;gap:10px;margin-bottom:14px;animation:slideIn .25s ease}
+        .msg.user{flex-direction:row-reverse}
+        .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+        .msg.ai .avatar{background:linear-gradient(135deg,var(--purple),#a78bfa)}
+        .msg.user .avatar{background:linear-gradient(135deg,var(--blue),#60a5fa)}
+        .bubble{background:var(--bg2);border-radius:16px;padding:12px 16px;max-width:85%;line-height:1.5;font-size:14px}
+        .msg.user .bubble{background:var(--bg3)}
+        
+        .input-area{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg,var(--bg) 90%,transparent);padding:16px}
+        .input-box{max-width:720px;margin:0 auto;background:var(--bg2);border:2px solid var(--bg3);border-radius:20px;padding:14px 18px;transition:all .3s}
+        .input-box.listening{border-color:var(--red);box-shadow:0 0 30px rgba(239,68,68,.1)}
+        .input-box.speaking{border-color:var(--purple);box-shadow:0 0 30px rgba(139,92,246,.1)}
+        
+        .input-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .waves{display:flex;gap:2px;align-items:flex-end;height:18px}
+        .waves span{width:3px;background:var(--red);border-radius:2px;animation:wave .9s ease-in-out infinite}
+        .waves span:nth-child(1){height:6px}
+        .waves span:nth-child(2){height:14px;animation-delay:.1s}
+        .waves span:nth-child(3){height:10px;animation-delay:.2s}
+        .waves span:nth-child(4){height:18px;animation-delay:.3s}
+        .waves span:nth-child(5){height:8px;animation-delay:.4s}
+        .input-label{font-size:12px;color:var(--muted)}
+        .transcript{font-size:15px;min-height:22px}
+        .hint{font-size:10px;color:var(--muted);text-align:center;margin-top:10px}
+        
+        .context-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:14px;margin-top:16px;display:none}
+        .context-card.show{display:block}
+        .context-card h4{font-size:13px;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .context-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
+        .context-row:last-child{border:none}
+        .context-row .label{color:var(--muted)}
+        .context-row .value{font-weight:500;color:var(--text)}
+        
+        .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+        .card{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s}
+        .card:hover{background:rgba(245,158,11,.12);transform:translateY(-2px)}
+        .card .icon{font-size:26px;margin-bottom:6px}
+        .card h5{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .card p{font-size:9px;color:var(--muted)}
+        .card-add{border-style:dashed;color:var(--gold)}
+        .card.selected{border-color:var(--green);background:rgba(16,185,129,.1)}
+        
+        .footer{position:fixed;bottom:90px;left:0;right:0;text-align:center;font-size:9px;color:rgba(100,116,139,.4)}
+        
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes wave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.3)}}
+        @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        
+        input[type="file"]{display:none}
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <header>
+        <div class="brand">
+            <div class="brand-logo">👁️</div>
+            <div>
+                <h1>JB EYES • ANIA</h1>
+                <p>Secrétaire IA pour Malvoyants</p>
+            </div>
+        </div>
+        <div class="mic-badge ready" id="micBadge">
+            <span class="mic-dot"></span>
+            <span id="micText">Prêt</span>
+        </div>
+    </header>
+
+    <div class="chat" id="chat">
+        <div class="chat-inner" id="chatInner"></div>
+        <div class="context-card" id="contextCard">
+            <h4 id="contextTitle">📋 Données</h4>
+            <div id="contextBody"></div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-box" id="inputBox">
+            <div class="input-header">
+                <div class="waves" id="waves" style="display:none">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="input-label" id="inputLabel">Micro actif</span>
+            </div>
+            <div class="transcript" id="transcript">—</div>
+            <div class="hint">💡 Parlez naturellement - ANIA est votre secrétaire</div>
+        </div>
+    </div>
+
+    <div class="footer">JB EYES © 2026 • Jonas Browser High-Tech • Nantes</div>
+</div>
+
+<input type="file" id="fileInput" multiple accept="*/*">
+
+<script>
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ * 
+ *    ╔═══════════════════════════════════════════════════════════════════════════════════╗
+ *    ║     ANIA v3 - SECRÉTAIRE IA INTELLIGENTE                                          ║
+ *    ║     Version Test Association                                                       ║
+ *    ║     Carnet d'adresses JB EYES pré-rempli                                          ║
+ *    ║     Module documents/pièces jointes amélioré                                      ║
+ *    ║                                                                                   ║
+ *    ║     JB EYES - Jonas Browser High-Tech © 2026                                      ║
+ *    ╚═══════════════════════════════════════════════════════════════════════════════════╝
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+const ANIA = {
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // ÉTAT
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    listening: false,
+    speaking: false,
+    micStarted: false,
+    
+    mode: 'accueil',
+    step: null,
+    lastSaid: '',
+    lastHeard: '',
+    original: '',
+    
+    pin: localStorage.getItem('ania_pin'),
+    pinBuf: '',
+    auth: false,
+    
+    // Email en cours
+    email: { to: '', toName: '', subject: '', body: '', attachment: null },
+    emailContext: {},
+    letterType: null,
+    letterQIdx: 0,
+    
+    // Formulaire
+    form: {},
+    formIdx: 0,
+    
+    // Fichier sélectionné
+    selectedFile: null,
+    selectedContact: null,
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // CARNET D'ADRESSES JB EYES (pré-rempli avec contacts fictifs)
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    contacts: JSON.parse(localStorage.getItem('ania_contacts')) || [
+        { name: 'Marie Dupont', email: 'marie.dupont@gmail.com', type: 'personnel' },
+        { name: 'Pierre Martin', email: 'pierre.martin@orange.fr', type: 'personnel' },
+        { name: 'Sophie Bernard', email: 'sophie.bernard@hotmail.com', type: 'personnel' },
+        { name: 'Jean Durand', email: 'jean.durand@free.fr', type: 'personnel' },
+        { name: 'Docteur Leblanc', email: 'cabinet.leblanc@medical.fr', type: 'médical' },
+        { name: 'Pharmacie Centrale', email: 'contact@pharmacie-centrale.fr', type: 'médical' },
+        { name: 'Mairie de Nantes', email: 'contact@mairie-nantes.fr', type: 'administratif' },
+        { name: 'CAF Loire-Atlantique', email: 'caf44@caf.fr', type: 'administratif' },
+        { name: 'Impôts', email: 'sip.nantes@dgfip.finances.gouv.fr', type: 'administratif' },
+        { name: 'Assurance Santé', email: 'contact@assurance-sante.fr', type: 'administratif' },
+        { name: 'EDF', email: 'service-client@edf.fr', type: 'service' },
+        { name: 'Orange', email: 'service-client@orange.fr', type: 'service' },
+        { name: 'Banque', email: 'contact@mabanque.fr', type: 'service' }
+    ],
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // DOCUMENTS / FICHIERS (pré-remplis pour démonstration)
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    files: JSON.parse(localStorage.getItem('ania_files')) || [
+        { name: 'Facture_EDF_Mars.pdf', type: 'application/pdf', date: '15/03/2026', category: 'factures' },
+        { name: 'Attestation_CAF.pdf', type: 'application/pdf', date: '10/03/2026', category: 'administratif' },
+        { name: 'Ordonnance_Dr_Leblanc.pdf', type: 'application/pdf', date: '08/03/2026', category: 'médical' },
+        { name: 'Photo_identité.jpg', type: 'image/jpeg', date: '01/03/2026', category: 'identité' },
+        { name: 'RIB_Banque.pdf', type: 'application/pdf', date: '20/02/2026', category: 'bancaire' },
+        { name: 'Avis_imposition_2025.pdf', type: 'application/pdf', date: '15/02/2026', category: 'administratif' }
+    ],
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // COFFRE-FORT
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    vault: {
+        'identité': { i: '🪪', t: "Carte d'identité numéro 1 2 3 4 5 6 7 8 9 0 1 2, valide jusqu'au 15 mars 2028" },
+        'bancaire': { i: '💳', t: "Carte bancaire Visa, se termine par 4 5 2 1, expire décembre 2027" },
+        'vitale': { i: '🏥', t: "Carte Vitale, numéro 1 85 12 75 108 042 56" },
+        'rib': { i: '🏦', t: "RIB, IBAN FR76 1234 5678 9012 3456 7890 123" },
+        'caf': { i: '📄', t: "Attestation CAF numéro 1 2 3 4 5 6 7" },
+        'impôt': { i: '💶', t: "Avis d'imposition 2025 disponible" }
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // TYPES DE LETTRES QU'ANIA RÉDIGE
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    letterTypes: {
+        'réclamation': {
+            questions: [
+                { key: 'motif', q: "Quel est le motif de votre réclamation ?" },
+                { key: 'details', q: "Pouvez-vous me donner plus de détails ?" },
+                { key: 'demande', q: "Que demandez-vous comme solution ?" }
+            ],
+            build: (ctx) => `Madame, Monsieur,
+
+Je me permets de vous contacter afin de vous faire part de mon mécontentement concernant ${ctx.motif}.
+
+En effet, ${ctx.details}.
+
+Par conséquent, je vous demande de bien vouloir ${ctx.demande}.
+
+Dans l'attente de votre retour, je vous prie d'agréer mes salutations distinguées.`
+        },
+        'demande': {
+            questions: [
+                { key: 'objet', q: "Quelle information souhaitez-vous demander ?" },
+                { key: 'contexte', q: "Pouvez-vous préciser le contexte ?" }
+            ],
+            build: (ctx) => `Madame, Monsieur,
+
+Je me permets de vous contacter afin d'obtenir des informations concernant ${ctx.objet}.
+
+${ctx.contexte}.
+
+Je vous remercie par avance pour votre réponse.
+
+Cordialement,`
+        },
+        'candidature': {
+            questions: [
+                { key: 'poste', q: "Pour quel poste postulez-vous ?" },
+                { key: 'experience', q: "Quelle est votre expérience pour ce poste ?" },
+                { key: 'motivation', q: "Pourquoi ce poste vous intéresse ?" }
+            ],
+            build: (ctx) => `Madame, Monsieur,
+
+Je me permets de vous adresser ma candidature pour le poste de ${ctx.poste}.
+
+Fort de mon expérience en ${ctx.experience}, je suis convaincu de pouvoir apporter une réelle valeur ajoutée.
+
+${ctx.motivation}.
+
+Je reste à votre disposition pour un entretien.
+
+Cordialement,`
+        },
+        'résiliation': {
+            questions: [
+                { key: 'contrat', q: "Quel type de contrat voulez-vous résilier ?" },
+                { key: 'motif', q: "Pour quelle raison ?" }
+            ],
+            build: (ctx) => `Madame, Monsieur,
+
+Par la présente, je vous informe de ma décision de résilier mon contrat ${ctx.contrat}.
+
+${ctx.motif ? 'Motif : ' + ctx.motif + '.' : ''}
+
+Je vous prie de bien vouloir prendre en compte cette résiliation.
+
+Cordialement,`
+        },
+        'remerciement': {
+            questions: [
+                { key: 'pourquoi', q: "Pour quoi voulez-vous remercier ?" }
+            ],
+            build: (ctx) => `Madame, Monsieur,
+
+Je tenais à vous adresser mes sincères remerciements pour ${ctx.pourquoi}.
+
+Cordialement,`
+        }
+    },
+
+    formFields: [
+        { id: 'prenom', label: 'prénom', type: 'text' },
+        { id: 'nom', label: 'nom', type: 'text' },
+        { id: 'tel', label: 'téléphone', type: 'phone' },
+        { id: 'email', label: 'email', type: 'email' },
+        { id: 'adresse', label: 'adresse', type: 'text' },
+        { id: 'cp', label: 'code postal', type: 'postal' }
+    ],
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // VOIX
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    rec: null,
+    syn: window.speechSynthesis,
+
+    initVoice() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return this.say("Reconnaissance vocale non disponible.", false);
+
+        this.rec = new SR();
+        this.rec.lang = 'fr-FR';
+        this.rec.continuous = true;
+        this.rec.interimResults = true;
+        this.rec.maxAlternatives = 1;
+
+        this.rec.onstart = () => {
+            this.listening = true;
+            this.micStarted = true;
+            this.ui();
+        };
+
+        this.rec.onresult = (e) => {
+            let fin = '', tmp = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                const t = e.results[i][0].transcript;
+                if (e.results[i].isFinal) fin += t;
+                else tmp += t;
+            }
+            document.getElementById('transcript').textContent = tmp || fin || '—';
+            
+            if (fin) {
+                this.original = fin.trim();
+                this.lastHeard = fin.toLowerCase().trim();
+                this.addMsg('user', this.original);
+                this.think();
+            }
+        };
+
+        this.rec.onerror = (e) => {
+            console.log('Mic error:', e.error);
+            if (e.error !== 'aborted') {
+                setTimeout(() => this.listen(), 200);
+            }
+        };
+
+        this.rec.onend = () => {
+            this.listening = false;
+            this.ui();
+            if (!this.speaking && this.micStarted) {
+                setTimeout(() => this.listen(), 50);
+            }
+        };
+    },
+
+    listen() {
+        if (!this.rec || this.listening || this.speaking) return;
+        try { this.rec.start(); } catch(e) {}
+    },
+
+    stop() {
+        if (this.rec && this.listening) {
+            try { this.rec.stop(); } catch(e) {}
+        }
+    },
+
+    say(text, thenListen = true) {
+        this.stop();
+        if (this.syn.speaking) this.syn.cancel();
+
+        this.speaking = true;
+        this.lastSaid = text;
+        this.ui();
+        this.addMsg('ai', text);
+
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'fr-FR';
+        u.rate = 0.92;
+        u.pitch = 1.0;
+
+        const v = this.syn.getVoices().find(x => x.lang?.startsWith('fr'));
+        if (v) u.voice = v;
+
+        u.onend = () => {
+            this.speaking = false;
+            this.ui();
+            if (thenListen) setTimeout(() => this.listen(), 100);
+        };
+
+        u.onerror = () => {
+            this.speaking = false;
+            this.ui();
+            if (thenListen) setTimeout(() => this.listen(), 100);
+        };
+
+        this.syn.speak(u);
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // INTELLIGENCE CONVERSATIONNELLE
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    think() {
+        const t = this.lastHeard;
+        console.log(`[${this.mode}/${this.step}] "${t}"`);
+
+        // ─── Commandes universelles ───
+        if (this.match(t, ['répète', 'redis', 'pardon', 'pas compris', 'pas entendu'])) {
+            return this.say(this.lastSaid);
+        }
+
+        if (this.match(t, ['aide', 'help', 'que faire'])) {
+            return this.help();
+        }
+
+        if (this.match(t, ['retour', 'menu', 'annuler', 'stop', 'arrête', 'quitter', 'laisse']) && this.mode !== 'pin' && this.mode !== 'accueil') {
+            return this.goMenu("D'accord, retour au menu. Que souhaitez-vous faire ?");
+        }
+
+        // ─── Corrections naturelles ───
+        const corr = t.match(/(?:non|rectifie|corrige|en fait|pardon)[,\s]*(?:c'?est|mon \w+ c'?est)?\s*(.+)/i);
+        if (corr?.[1]?.length > 1 && !this.match(corr[1], ['pas', 'faux', 'incorrect', 'ça'])) {
+            return this.correct(this.extractOriginal(corr[1]));
+        }
+
+        if (t === 'non' || this.match(t, ["c'est pas", "c'est faux", 'incorrect'])) {
+            return this.say("D'accord, dites-moi la bonne information.");
+        }
+
+        // ─── Confirmations ───
+        if (this.match(t, ['oui', 'exact', 'correct', "c'est ça", "c'est bon", 'parfait', 'ok', "d'accord", 'super', 'valide', 'confirme', 'vas-y', 'envoie', 'envoyer'])) {
+            return this.confirm();
+        }
+
+        // ─── Dispatch par mode ───
+        switch (this.mode) {
+            case 'accueil':
+            case 'pin': this.doPin(t); break;
+            case 'menu': this.doMenu(t); break;
+            case 'contacts': this.doContacts(t); break;
+            case 'email': this.doEmail(t); break;
+            case 'letter': this.doLetter(t); break;
+            case 'documents': this.doDocuments(t); break;
+            case 'form': this.doForm(t); break;
+            case 'vault': this.doVault(t); break;
+        }
+    },
+
+    match(t, arr) { return arr.some(k => t.includes(k)); },
+
+    extractOriginal(lowPart) {
+        const idx = this.lastHeard.indexOf(lowPart);
+        if (idx >= 0) return this.original.substring(idx, idx + lowPart.length);
+        return this.original;
+    },
+
+    correct(val) {
+        if (this.mode === 'form') return this.saveForm(val);
+        if (this.mode === 'email') return this.saveEmail(val);
+        if (this.mode === 'letter') return this.saveLetter(val);
+        this.say(`Noté : ${val}`);
+    },
+
+    confirm() {
+        if (this.mode === 'form') return this.nextForm();
+        if (this.mode === 'email') return this.nextEmail();
+        if (this.mode === 'letter') return this.nextLetter();
+        if (this.mode === 'contacts' && this.selectedContact) {
+            return this.useContact();
+        }
+        if (this.mode === 'documents' && this.selectedFile) {
+            return this.useDocument();
+        }
+        this.say("Très bien !");
+    },
+
+    help() {
+        const h = {
+            accueil: "Dites 4 chiffres pour créer votre code secret.",
+            pin: "Dites vos 4 chiffres secrets.",
+            menu: "Je peux écrire un email, rédiger une lettre, parcourir vos contacts, vos documents, remplir un formulaire, ou ouvrir le coffre-fort.",
+            contacts: "Dites un nom pour le sélectionner, ou 'ajouter' pour un nouveau contact.",
+            email: "Répondez à mes questions. Dites 'terminé' quand vous avez fini le message.",
+            letter: "Je rédige la lettre pour vous. Répondez à mes questions.",
+            documents: "Dites le nom d'un document pour le sélectionner comme pièce jointe.",
+            form: "Répondez aux questions. Dites 'non c'est...' pour corriger.",
+            vault: "Dites carte identité, bancaire, vitale, RIB, CAF ou impôts."
+        };
+        this.say(h[this.mode] || h.menu);
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // PIN
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    doPin(t) {
+        const d = this.digits(t);
+        if (d) {
+            this.pinBuf += d;
+            if (this.pinBuf.length >= 4) {
+                const c = this.pinBuf.substring(0, 4);
+                if (!this.pin) {
+                    localStorage.setItem('ania_pin', c);
+                    this.pin = c;
+                    this.auth = true;
+                    this.say(`Code ${c.split('').join(' ')} créé. Bienvenue ! Je suis ANIA, votre secrétaire. Je peux écrire des emails, rédiger des lettres, gérer vos contacts et vos documents. Que voulez-vous faire ?`);
+                    this.goMenu();
+                } else if (c === this.pin) {
+                    this.auth = true;
+                    this.say("Bonjour ! Comment puis-je vous aider ?");
+                    this.goMenu();
+                } else {
+                    this.pinBuf = '';
+                    this.say("Code incorrect. Réessayez.");
+                }
+            } else {
+                this.say(`${this.pinBuf.length} chiffres, encore ${4 - this.pinBuf.length}.`);
+            }
+        } else if (this.match(t, ['effacer', 'reset'])) {
+            this.pinBuf = '';
+            this.say("Effacé.");
+        } else {
+            this.say("Dites 4 chiffres.");
+        }
+    },
+
+    digits(t) {
+        const m = {zéro:'0',zero:'0',un:'1',une:'1',deux:'2',trois:'3',quatre:'4',cinq:'5',six:'6',sept:'7',huit:'8',neuf:'9',dix:'10',onze:'11',douze:'12'};
+        let r = t;
+        for (let [w, d] of Object.entries(m)) r = r.replace(new RegExp(`\\b${w}\\b`, 'gi'), d);
+        return r.replace(/[^0-9]/g, '');
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // MENU
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    goMenu(msg) {
+        this.mode = 'menu';
+        this.step = null;
+        this.selectedFile = null;
+        this.selectedContact = null;
+        this.hideCard();
+        if (msg) this.say(msg);
+    },
+
+    doMenu(t) {
+        // Email
+        if (this.match(t, ['email', 'mail', 'envoyer un mail', 'écrire un mail', 'écrire un email'])) {
+            return this.startEmail();
+        }
+        
+        // Lettre (ANIA rédige)
+        if (this.match(t, ['lettre', 'rédiger', 'écrire une lettre', 'courrier', 'réclamation', 'candidature', 'résiliation', 'demande', 'remerciement'])) {
+            return this.startLetter(t);
+        }
+        
+        // Contacts
+        if (this.match(t, ['contact', 'carnet', 'contacts', 'mes contacts', 'carnet d\'adresse'])) {
+            return this.openContacts();
+        }
+        
+        // Documents / Fichiers
+        if (this.match(t, ['document', 'documents', 'fichier', 'fichiers', 'pièce jointe', 'mes documents', 'parcourir'])) {
+            return this.openDocuments();
+        }
+        
+        // Formulaire
+        if (this.match(t, ['formulaire', 'remplir', 'administratif'])) {
+            return this.startForm();
+        }
+        
+        // Coffre-fort
+        if (this.match(t, ['coffre', 'papier', 'carte', 'rib', 'vitale', 'identité', 'caf', 'impôt'])) {
+            return this.openVault();
+        }
+
+        this.say("Je peux écrire un email, rédiger une lettre, parcourir vos contacts ou vos documents, remplir un formulaire, ou ouvrir le coffre-fort. Que préférez-vous ?");
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // CARNET D'ADRESSES
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    openContacts() {
+        this.mode = 'contacts';
+        this.step = 'browse';
+        this.selectedContact = null;
+        this.showContactsCard();
+        
+        // Lire quelques contacts
+        const names = this.contacts.slice(0, 5).map(c => c.name).join(', ');
+        this.say(`Voici vos contacts. J'ai ${this.contacts.length} contacts enregistrés, dont ${names}. Dites un nom pour le sélectionner, ou dites "tous" pour entendre la liste complète.`);
+    },
+
+    doContacts(t) {
+        // Liste complète
+        if (this.match(t, ['tous', 'tout', 'liste', 'complet'])) {
+            const names = this.contacts.map(c => c.name).join(', ');
+            return this.say(`Liste complète : ${names}. Dites un nom pour le sélectionner.`);
+        }
+
+        // Catégories
+        if (this.match(t, ['personnel', 'famille', 'amis'])) {
+            const filtered = this.contacts.filter(c => c.type === 'personnel');
+            const names = filtered.map(c => c.name).join(', ');
+            return this.say(`Contacts personnels : ${names}.`);
+        }
+        if (this.match(t, ['médical', 'docteur', 'santé'])) {
+            const filtered = this.contacts.filter(c => c.type === 'médical');
+            const names = filtered.map(c => c.name).join(', ');
+            return this.say(`Contacts médicaux : ${names}.`);
+        }
+        if (this.match(t, ['administratif', 'administration'])) {
+            const filtered = this.contacts.filter(c => c.type === 'administratif');
+            const names = filtered.map(c => c.name).join(', ');
+            return this.say(`Contacts administratifs : ${names}.`);
+        }
+
+        // Ajouter contact
+        if (this.match(t, ['ajouter', 'nouveau'])) {
+            this.step = 'add_name';
+            return this.say("Comment s'appelle ce nouveau contact ?");
+        }
+
+        // Chercher un contact par nom
+        const contact = this.findContact(t);
+        if (contact) {
+            this.selectedContact = contact;
+            this.showContactsCard();
+            return this.say(`${contact.name}, adresse email ${this.readEmail(contact.email)}. Voulez-vous lui écrire un email ?`);
+        }
+
+        // Ajouter nom
+        if (this.step === 'add_name') {
+            this.newContact = { name: this.original };
+            this.step = 'add_email';
+            return this.say(`${this.original}. Quelle est son adresse email ?`);
+        }
+
+        // Ajouter email
+        if (this.step === 'add_email') {
+            const email = this.parseEmail(t);
+            if (this.validEmail(email)) {
+                this.newContact.email = email;
+                this.newContact.type = 'personnel';
+                this.contacts.push(this.newContact);
+                this.saveContacts();
+                this.showContactsCard();
+                this.step = 'browse';
+                return this.say(`Contact ${this.newContact.name} ajouté ! Vous avez maintenant ${this.contacts.length} contacts.`);
+            }
+            return this.say("Je n'ai pas compris l'adresse. Épelez-la lettre par lettre.");
+        }
+
+        this.say("Dites le nom d'un contact, ou 'ajouter' pour créer un nouveau contact.");
+    },
+
+    findContact(text) {
+        // Recherche flexible
+        const words = text.split(' ').filter(w => w.length > 2);
+        return this.contacts.find(c => {
+            const nameLow = c.name.toLowerCase();
+            return words.some(w => nameLow.includes(w)) || text.includes(nameLow);
+        });
+    },
+
+    useContact() {
+        if (!this.selectedContact) return;
+        
+        this.email.to = this.selectedContact.email;
+        this.email.toName = this.selectedContact.name;
+        this.mode = 'email';
+        this.step = 'subject';
+        this.showEmailCard();
+        this.updateCard('Destinataire', `${this.selectedContact.name}`);
+        this.say(`Je prépare un email pour ${this.selectedContact.name}. Quel est l'objet de votre message ?`);
+    },
+
+    showContactsCard() {
+        const card = document.getElementById('contextCard');
+        card.classList.add('show');
+        document.getElementById('contextTitle').textContent = '📇 Carnet d\'adresses JB EYES';
+        
+        let html = '<div class="cards-grid">';
+        this.contacts.forEach(c => {
+            const selected = this.selectedContact?.email === c.email ? 'selected' : '';
+            const icon = c.type === 'médical' ? '🏥' : c.type === 'administratif' ? '🏛️' : c.type === 'service' ? '🏢' : '👤';
+            html += `<div class="card ${selected}"><div class="icon">${icon}</div><h5>${c.name}</h5><p>${c.type}</p></div>`;
+        });
+        html += `<div class="card card-add"><div class="icon">➕</div><h5>Ajouter</h5></div>`;
+        html += '</div>';
+        document.getElementById('contextBody').innerHTML = html;
+    },
+
+    saveContacts() {
+        localStorage.setItem('ania_contacts', JSON.stringify(this.contacts));
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // DOCUMENTS / PIÈCES JOINTES
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    openDocuments() {
+        this.mode = 'documents';
+        this.step = 'browse';
+        this.selectedFile = null;
+        this.showDocumentsCard();
+        
+        const names = this.files.slice(0, 4).map(f => f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ')).join(', ');
+        this.say(`Vos documents. J'ai ${this.files.length} fichiers : ${names}, et d'autres. Dites le nom d'un document pour le sélectionner, ou "tous" pour la liste complète.`);
+    },
+
+    doDocuments(t) {
+        // Liste complète
+        if (this.match(t, ['tous', 'tout', 'liste', 'complet'])) {
+            const names = this.files.map(f => f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ')).join(', ');
+            return this.say(`Liste complète : ${names}.`);
+        }
+
+        // Catégories
+        if (this.match(t, ['facture', 'factures'])) {
+            const filtered = this.files.filter(f => f.category === 'factures' || f.name.toLowerCase().includes('facture'));
+            const names = filtered.map(f => f.name.replace(/_/g, ' ')).join(', ');
+            return this.say(`Factures : ${names || 'aucune'}.`);
+        }
+        if (this.match(t, ['médical', 'ordonnance', 'santé'])) {
+            const filtered = this.files.filter(f => f.category === 'médical');
+            const names = filtered.map(f => f.name.replace(/_/g, ' ')).join(', ');
+            return this.say(`Documents médicaux : ${names || 'aucun'}.`);
+        }
+        if (this.match(t, ['administratif', 'administration'])) {
+            const filtered = this.files.filter(f => f.category === 'administratif');
+            const names = filtered.map(f => f.name.replace(/_/g, ' ')).join(', ');
+            return this.say(`Documents administratifs : ${names || 'aucun'}.`);
+        }
+
+        // Ajouter fichier
+        if (this.match(t, ['ajouter', 'nouveau', 'télécharger', 'importer'])) {
+            return this.uploadFile();
+        }
+
+        // Chercher un document par nom
+        const file = this.findFile(t);
+        if (file) {
+            this.selectedFile = file;
+            this.showDocumentsCard();
+            return this.say(`Document sélectionné : ${file.name.replace(/_/g, ' ')}, ajouté le ${file.date}. Voulez-vous l'envoyer par email comme pièce jointe ?`);
+        }
+
+        this.say("Dites le nom d'un document, ou 'ajouter' pour télécharger un nouveau fichier.");
+    },
+
+    findFile(text) {
+        return this.files.find(f => {
+            const nameLow = f.name.toLowerCase().replace(/[_\.]/g, ' ');
+            return text.split(' ').some(w => w.length > 2 && nameLow.includes(w));
+        });
+    },
+
+    useDocument() {
+        if (!this.selectedFile) return;
+        
+        this.email.attachment = this.selectedFile;
+        this.mode = 'email';
+        this.step = 'to';
+        this.showEmailCard();
+        this.updateCard('Pièce jointe', this.selectedFile.name.replace(/_/g, ' '));
+        
+        const names = this.contacts.slice(0, 3).map(c => c.name).join(', ');
+        this.say(`Je prépare l'envoi de ${this.selectedFile.name.replace(/_/g, ' ')}. À qui voulez-vous l'envoyer ? Vous pouvez dire un nom comme ${names}, ou me donner une adresse.`);
+    },
+
+    uploadFile() {
+        this.say("Je vais ajouter un fichier.", false);
+        
+        const input = document.getElementById('fileInput');
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const data = { name: file.name, type: file.type, date: new Date().toLocaleDateString('fr-FR'), category: 'autre' };
+                this.files.push(data);
+                this.saveFiles();
+                this.showDocumentsCard();
+                this.say(`${file.name} ajouté ! Vous avez maintenant ${this.files.length} documents.`);
+            }
+            input.value = '';
+        };
+        setTimeout(() => input.click(), 500);
+    },
+
+    showDocumentsCard() {
+        const card = document.getElementById('contextCard');
+        card.classList.add('show');
+        document.getElementById('contextTitle').textContent = '📁 Mes documents';
+        
+        let html = '<div class="cards-grid">';
+        this.files.forEach(f => {
+            const selected = this.selectedFile?.name === f.name ? 'selected' : '';
+            const icon = f.type?.includes('pdf') ? '📕' : f.type?.includes('image') ? '🖼️' : '📄';
+            html += `<div class="card ${selected}"><div class="icon">${icon}</div><h5>${f.name.replace(/_/g, ' ').substring(0, 15)}</h5><p>${f.date}</p></div>`;
+        });
+        html += `<div class="card card-add"><div class="icon">➕</div><h5>Ajouter</h5></div>`;
+        html += '</div>';
+        document.getElementById('contextBody').innerHTML = html;
+    },
+
+    saveFiles() {
+        localStorage.setItem('ania_files', JSON.stringify(this.files));
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // EMAIL
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    startEmail() {
+        this.mode = 'email';
+        this.step = 'to';
+        this.email = { to: '', toName: '', subject: '', body: '', attachment: null };
+        this.showEmailCard();
+        
+        const names = this.contacts.slice(0, 3).map(c => c.name).join(', ');
+        this.say(`À qui voulez-vous écrire ? Vous pouvez dire un nom comme ${names}, ou me donner une adresse email.`);
+    },
+
+    doEmail(t) {
+        // Chercher contact
+        if (this.step === 'to') {
+            const contact = this.findContact(t);
+            if (contact) {
+                this.email.to = contact.email;
+                this.email.toName = contact.name;
+                this.updateCard('Destinataire', contact.name);
+                this.step = 'subject';
+                return this.say(`J'envoie à ${contact.name}. Quel est l'objet ?`);
+            }
+
+            // Pièce jointe d'abord
+            if (this.match(t, ['pièce jointe', 'joindre', 'document'])) {
+                this.step = 'attachment';
+                this.showDocumentsCard();
+                return this.say("Quel document voulez-vous joindre ?");
+            }
+        }
+
+        // Sélection pièce jointe
+        if (this.step === 'attachment') {
+            const file = this.findFile(t);
+            if (file) {
+                this.email.attachment = file;
+                this.updateCard('Pièce jointe', file.name.replace(/_/g, ' '));
+                this.step = 'to';
+                this.showEmailCard();
+                return this.say(`${file.name.replace(/_/g, ' ')} joint. Maintenant, à qui l'envoyer ?`);
+            }
+        }
+
+        this.saveEmail(this.original);
+    },
+
+    saveEmail(val) {
+        switch (this.step) {
+            case 'to':
+                const email = this.parseEmail(this.lastHeard);
+                if (this.validEmail(email)) {
+                    this.email.to = email;
+                    this.updateCard('Destinataire', email);
+                    this.step = 'subject';
+                    this.say(`J'ai noté ${this.readEmail(email)}. Quel est l'objet ?`);
+                } else if (email.includes('@')) {
+                    this.email.to = email;
+                    this.updateCard('Destinataire', email + ' ?');
+                    this.say(`${this.readEmail(email)}. C'est correct ?`);
+                } else {
+                    this.say("Épelez l'adresse : par exemple j, e, a, n, tiret, pierre, arobase, gmail, point, com.");
+                }
+                break;
+
+            case 'subject':
+                this.email.subject = val;
+                this.updateCard('Objet', val);
+                this.step = 'body';
+                this.say("Dictez votre message. Dites 'terminé' quand vous avez fini.");
+                break;
+
+            case 'body':
+                if (this.match(this.lastHeard, ['terminé', 'fini', "c'est tout", 'voilà'])) {
+                    this.step = 'confirm';
+                    this.readBackEmail();
+                } else if (this.match(this.lastHeard, ['effacer'])) {
+                    this.email.body = '';
+                    this.updateCard('Message', '');
+                    this.say("Effacé. Redictez.");
+                } else if (this.match(this.lastHeard, ['pièce jointe', 'joindre'])) {
+                    this.step = 'attachment';
+                    this.showDocumentsCard();
+                    this.say("Quel document joindre ?");
+                } else {
+                    this.email.body += (this.email.body ? ' ' : '') + val;
+                    this.updateCard('Message', this.email.body.substring(0, 30) + '...');
+                    this.say("Noté. Continuez ou dites terminé.");
+                }
+                break;
+
+            case 'confirm':
+                if (this.match(this.lastHeard, ['modifier', 'changer'])) {
+                    this.say("Modifier quoi : destinataire, objet, message, ou pièce jointe ?");
+                } else if (this.match(this.lastHeard, ['destinataire'])) {
+                    this.step = 'to';
+                    this.say("Nouveau destinataire ?");
+                } else if (this.match(this.lastHeard, ['objet'])) {
+                    this.step = 'subject';
+                    this.say("Nouvel objet ?");
+                } else if (this.match(this.lastHeard, ['message'])) {
+                    this.step = 'body';
+                    this.email.body = '';
+                    this.say("Redictez.");
+                } else if (this.match(this.lastHeard, ['pièce jointe', 'joindre', 'document'])) {
+                    this.step = 'attachment';
+                    this.showDocumentsCard();
+                    this.say("Quel document joindre ?");
+                } else if (this.match(this.lastHeard, ['relire'])) {
+                    this.readBackEmail();
+                }
+                break;
+        }
+    },
+
+    nextEmail() {
+        if (this.step === 'to' && this.email.to) {
+            this.step = 'subject';
+            this.say("Quel est l'objet ?");
+        } else if (this.step === 'subject') {
+            this.step = 'body';
+            this.say("Dictez votre message.");
+        } else if (this.step === 'body') {
+            this.step = 'confirm';
+            this.readBackEmail();
+        } else if (this.step === 'confirm') {
+            this.say("Email envoyé ! Que puis-je faire d'autre ?");
+            this.goMenu();
+        }
+    },
+
+    readBackEmail() {
+        const e = this.email;
+        const dest = e.toName || this.readEmail(e.to);
+        let msg = `Récapitulatif. Destinataire : ${dest}. Objet : ${e.subject}. Message : ${e.body}`;
+        if (e.attachment) msg += `. Pièce jointe : ${e.attachment.name.replace(/_/g, ' ')}`;
+        msg += ". Dites envoyer ou modifier.";
+        this.say(msg);
+    },
+
+    showEmailCard() {
+        const fields = ['Destinataire', 'Objet', 'Message'];
+        if (this.email.attachment) fields.push('Pièce jointe');
+        this.showCard('✉️ Email', fields);
+        if (this.email.attachment) {
+            this.updateCard('Pièce jointe', this.email.attachment.name.replace(/_/g, ' '));
+        }
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // LETTRE (ANIA rédige)
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    startLetter(t) {
+        let type = null;
+        for (const [name] of Object.entries(this.letterTypes)) {
+            if (t.includes(name)) { type = name; break; }
+        }
+
+        this.mode = 'letter';
+        this.email = { to: '', toName: '', subject: '', body: '', attachment: null };
+        this.emailContext = {};
+        this.letterType = type;
+        this.letterQIdx = 0;
+
+        if (type) {
+            this.step = 'to';
+            const names = this.contacts.slice(0, 3).map(c => c.name).join(', ');
+            this.say(`Je vais rédiger une lettre de ${type} pour vous. À qui dois-je l'adresser ? Dites un nom comme ${names}, ou donnez-moi l'adresse.`);
+        } else {
+            this.step = 'type';
+            this.say("Quel type de lettre ? Une réclamation, une demande, une candidature, une résiliation, ou des remerciements ?");
+        }
+    },
+
+    doLetter(t) {
+        if (this.step === 'type') {
+            for (const [name] of Object.entries(this.letterTypes)) {
+                if (t.includes(name)) {
+                    this.letterType = name;
+                    this.step = 'to';
+                    const names = this.contacts.slice(0, 3).map(c => c.name).join(', ');
+                    return this.say(`Une ${name}. À qui l'adresser ? Dites par exemple ${names}.`);
+                }
+            }
+            return this.say("Dites réclamation, demande, candidature, résiliation, ou remerciement.");
+        }
+
+        this.saveLetter(this.original);
+    },
+
+    saveLetter(val) {
+        if (this.step === 'to') {
+            const contact = this.findContact(this.lastHeard);
+            if (contact) {
+                this.email.to = contact.email;
+                this.email.toName = contact.name;
+                this.step = 'questions';
+                const q = this.letterTypes[this.letterType].questions[0];
+                return this.say(`J'écris à ${contact.name}. ${q.q}`);
+            }
+
+            const email = this.parseEmail(this.lastHeard);
+            if (this.validEmail(email)) {
+                this.email.to = email;
+                this.step = 'questions';
+                const q = this.letterTypes[this.letterType].questions[0];
+                this.say(`Noté. ${q.q}`);
+            } else if (email.includes('@')) {
+                this.email.to = email;
+                this.say(`${this.readEmail(email)}. C'est bon ?`);
+            } else {
+                const names = this.contacts.slice(0, 3).map(c => c.name).join(', ');
+                this.say(`Dites un nom comme ${names}, ou épelez l'adresse.`);
+            }
+            return;
+        }
+
+        if (this.step === 'questions') {
+            const template = this.letterTypes[this.letterType];
+            const q = template.questions[this.letterQIdx];
+            this.emailContext[q.key] = val;
+            this.letterQIdx++;
+
+            if (this.letterQIdx < template.questions.length) {
+                const nextQ = template.questions[this.letterQIdx];
+                this.say(nextQ.q);
+            } else {
+                this.email.body = template.build(this.emailContext);
+                this.email.subject = this.letterType.charAt(0).toUpperCase() + this.letterType.slice(1);
+                this.step = 'review';
+                this.say(`J'ai rédigé votre lettre. La voici : ${this.email.body}. Voulez-vous l'envoyer ?`);
+            }
+            return;
+        }
+
+        if (this.step === 'review') {
+            if (this.match(this.lastHeard, ['modifier', 'recommencer'])) {
+                this.letterQIdx = 0;
+                this.emailContext = {};
+                this.step = 'questions';
+                const q = this.letterTypes[this.letterType].questions[0];
+                this.say(`Reprenons. ${q.q}`);
+            } else if (this.match(this.lastHeard, ['relire'])) {
+                this.say(`Le message : ${this.email.body}. L'envoyer ?`);
+            }
+        }
+    },
+
+    nextLetter() {
+        if (this.step === 'to' && this.email.to) {
+            this.step = 'questions';
+            const q = this.letterTypes[this.letterType].questions[0];
+            this.say(q.q);
+        } else if (this.step === 'review') {
+            const dest = this.email.toName || this.readEmail(this.email.to);
+            this.say(`Lettre envoyée à ${dest} ! Que puis-je faire d'autre ?`);
+            this.goMenu();
+        }
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // FORMULAIRE
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    startForm() {
+        this.mode = 'form';
+        this.form = {};
+        this.formIdx = 0;
+        this.showCard('📋 Formulaire', this.formFields.map(f => f.label.charAt(0).toUpperCase() + f.label.slice(1)));
+        this.say(`Remplissons le formulaire. Quel est votre ${this.formFields[0].label} ?`);
+    },
+
+    doForm(t) {
+        this.saveForm(this.original);
+    },
+
+    saveForm(val) {
+        const f = this.formFields[this.formIdx];
+        let v = val, ok = true;
+
+        if (f.type === 'phone') {
+            v = this.digits(this.lastHeard);
+            ok = /^0[1-9][0-9]{8}$/.test(v);
+        } else if (f.type === 'email') {
+            v = this.parseEmail(this.lastHeard);
+            ok = this.validEmail(v);
+        } else if (f.type === 'postal') {
+            v = this.digits(this.lastHeard);
+            ok = /^[0-9]{5}$/.test(v);
+        }
+
+        this.form[f.id] = v;
+        this.updateCard(f.label.charAt(0).toUpperCase() + f.label.slice(1), v + (ok ? '' : ' ⚠️'));
+
+        if (ok) {
+            this.say(`${f.label} : ${v}. C'est correct ?`);
+        } else {
+            let h = '';
+            if (f.type === 'phone') h = "10 chiffres commençant par 0.";
+            if (f.type === 'email') h = "Avec arobase et point.";
+            if (f.type === 'postal') h = "5 chiffres.";
+            this.say(`Format incorrect. ${h}`);
+        }
+    },
+
+    nextForm() {
+        if (this.formIdx < this.formFields.length - 1) {
+            this.formIdx++;
+            this.say(`${this.formFields[this.formIdx].label} ?`);
+        } else {
+            let r = "Terminé ! ";
+            this.formFields.forEach(f => { if (this.form[f.id]) r += `${f.label} : ${this.form[f.id]}. `; });
+            r += "Envoyer ?";
+            this.step = 'confirm';
+            this.say(r);
+        }
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // COFFRE-FORT
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    openVault() {
+        this.mode = 'vault';
+        this.showVaultCard();
+        this.say("Coffre-fort. Quel document ? Carte identité, bancaire, vitale, RIB, CAF, ou impôts.");
+    },
+
+    doVault(t) {
+        for (let [k, v] of Object.entries(this.vault)) {
+            if (t.includes(k)) return this.say(`${v.t}. Autre document ?`);
+        }
+        this.say("Non trouvé. Dites carte identité, bancaire, vitale, RIB, CAF, ou impôts.");
+    },
+
+    showVaultCard() {
+        const card = document.getElementById('contextCard');
+        card.classList.add('show');
+        document.getElementById('contextTitle').textContent = '🔐 Coffre-fort';
+        let html = '<div class="cards-grid">';
+        for (let [k, v] of Object.entries(this.vault)) {
+            html += `<div class="card"><div class="icon">${v.i}</div><h5>${k}</h5></div>`;
+        }
+        html += '</div>';
+        document.getElementById('contextBody').innerHTML = html;
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // PARSING EMAIL AMÉLIORÉ
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    parseEmail(text) {
+        let t = text.toLowerCase();
+        const replacements = [
+            [/\barobase\b/g, '@'], [/\barrobase\b/g, '@'], [/\bat\b/g, '@'], [/\bà\b/g, '@'],
+            [/\bpoint\b/g, '.'], [/\bdot\b/g, '.'],
+            [/\btiret\b/g, '-'], [/\btirer\b/g, '-'], [/\bthierry\b/g, '-'], [/\btirais\b/g, '-'],
+            [/\btiret bas\b/g, '_'], [/\bunderscore\b/g, '_'],
+            [/\bgmail\b/g, 'gmail'], [/\bhotmail\b/g, 'hotmail'], [/\boutlook\b/g, 'outlook'],
+            [/\byahoo\b/g, 'yahoo'], [/\borange\b/g, 'orange'], [/\bfree\b/g, 'free'],
+            [/\bsfr\b/g, 'sfr'], [/\blaposte\b/g, 'laposte'],
+            [/\bcom\b/g, 'com'], [/\bfr\b/g, 'fr'], [/\bnet\b/g, 'net'], [/\borg\b/g, 'org']
+        ];
+        for (const [p, r] of replacements) t = t.replace(p, r);
+        return t.replace(/\s+/g, '').replace(/[^a-z0-9@.\-_]/g, '');
+    },
+
+    validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); },
+    
+    readEmail(e) {
+        return e.replace('@', ' arobase ').replace(/\./g, ' point ').replace(/-/g, ' tiret ').replace(/_/g, ' tiret bas ');
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // UI
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    addMsg(who, text) {
+        const c = document.getElementById('chatInner');
+        const m = document.createElement('div');
+        m.className = `msg ${who === 'ai' ? 'ai' : 'user'}`;
+        m.innerHTML = `<div class="avatar">${who === 'ai' ? '🤖' : '👤'}</div><div class="bubble">${text}</div>`;
+        c.appendChild(m);
+        document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+    },
+
+    ui() {
+        const badge = document.getElementById('micBadge');
+        const txt = document.getElementById('micText');
+        const box = document.getElementById('inputBox');
+        const waves = document.getElementById('waves');
+        const label = document.getElementById('inputLabel');
+
+        badge.className = 'mic-badge';
+        box.className = 'input-box';
+
+        if (this.speaking) {
+            badge.classList.add('speaking'); box.classList.add('speaking');
+            txt.textContent = '🔊'; waves.style.display = 'none'; label.textContent = 'ANIA parle...';
+        } else if (this.listening) {
+            badge.classList.add('listening'); box.classList.add('listening');
+            txt.textContent = '🎤'; waves.style.display = 'flex'; label.textContent = 'Je vous écoute...';
+        } else {
+            badge.classList.add('ready');
+            txt.textContent = '✓'; waves.style.display = 'none'; label.textContent = 'Micro actif';
+        }
+    },
+
+    showCard(title, fields) {
+        const card = document.getElementById('contextCard');
+        card.classList.add('show');
+        document.getElementById('contextTitle').textContent = title;
+        document.getElementById('contextBody').innerHTML = fields.map(f =>
+            `<div class="context-row"><span class="label">${f}</span><span class="value" id="c_${f.toLowerCase().replace(/\s/g,'_').replace(/é/g,'e')}">—</span></div>`
+        ).join('');
+    },
+
+    updateCard(label, val) {
+        const el = document.getElementById('c_' + label.toLowerCase().replace(/\s/g,'_').replace(/é/g,'e'));
+        if (el) el.textContent = val || '—';
+    },
+
+    hideCard() { document.getElementById('contextCard').classList.remove('show'); },
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    init() {
+        this.syn.onvoiceschanged = () => this.syn.getVoices();
+        this.initVoice();
+
+        // Sauvegarder les données initiales si pas déjà fait
+        if (!localStorage.getItem('ania_contacts')) {
+            localStorage.setItem('ania_contacts', JSON.stringify(this.contacts));
+        }
+        if (!localStorage.getItem('ania_files')) {
+            localStorage.setItem('ania_files', JSON.stringify(this.files));
+        }
+
+        setTimeout(() => {
+            this.mode = 'pin';
+            if (!this.pin) {
+                this.say("Bonjour ! Je suis ANIA, votre secrétaire JB EYES. Créez votre code : dites 4 chiffres.");
+            } else {
+                this.say("Bonjour ! C'est ANIA. Dites votre code à 4 chiffres.");
+            }
+        }, 600);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => ANIA.init());
+</script>
+
+</body>
+</html>
